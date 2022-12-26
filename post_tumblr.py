@@ -12,6 +12,7 @@ import random
 from bs4 import BeautifulSoup
 import cached_url
 import telepost
+import pytumblr
 
 with open('credential') as f:
     credential = yaml.load(f, Loader=yaml.FullLoader)
@@ -58,8 +59,7 @@ def getPosts(channel):
         except Exception as e:
             print('post_tumblr post_2_album failed', post.getKey(), str(e))
 
-async def post_tumblr(channel, post, album, status_text):
-    tumblr_user = credential['channels'][channel]['tumblr_user']
+async def post_tumblr(tumblr_user, channel, post, album, status_text):
     if album.video:
         return client.create_video(tumblr_user, caption=status_text, data=album.video)
     if album.imgs:    
@@ -82,13 +82,6 @@ async def getText(channel, post):
     text = '\n'.join([line.strip() for line in text.split('\n')]).strip()
     return text
 
-def addSuffix(status_text, post, album):
-    if post.file:
-        return status_text + '\n\n' + album.url
-    if not status_text:
-        return album.url
-    return status_text
-
 async def runImp():
     removeOldFiles('tmp', day=0.1)
     channels = list(credential['channels'].keys())
@@ -97,11 +90,13 @@ async def runImp():
         for album, post in getPosts(channel):
             if existing.get(album.url):
                 continue
-            status_text = await getText(channel, post)
-            status_text = addSuffix(status_text, post, album)
-            result = post_tumblr(channel, post, album status_text)
-            print(result)
-            existing.update(album.url, result.id)
+            status_text = album.cap_html
+            if not status_text:
+                continue
+            tumblr_user = credential['channels'][channel]['tumblr_user']
+            result = await post_tumblr(tumblr_user, channel, post, album, status_text)
+            existing.update(album.url, 
+                'tumblr.com/' + tumblr_user + '/' + result['id_str'])
             return # only send one item for each run
 
 async def run():
