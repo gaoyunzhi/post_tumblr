@@ -17,7 +17,7 @@ import pytumblr
 with open('credential') as f:
     credential = yaml.load(f, Loader=yaml.FullLoader)
 
-existing = plain_db.loadLargeDB('existing', isIntValue=True)
+existing = plain_db.loadLargeDB('existing', isIntValue=False)
 
 client = pytumblr.TumblrRestClient(
     credential['consumer_key'],
@@ -61,26 +61,12 @@ def getPosts(channel):
 
 async def post_tumblr(tumblr_user, channel, post, album, status_text):
     if album.video:
-        return client.create_video(tumblr_user, caption=status_text, data=album.video)
+        fns = await telepost.getImages(channel, post.post_id, post.getImgNumber())
+        return client.create_video(tumblr_user, caption=status_text, data=fns)
     if album.imgs:    
         fns = await telepost.getImages(channel, post.post_id, post.getImgNumber())
         return client.create_photo(tumblr_user, caption=status_text, data=fns)
     return client.create_text(status_text)
-
-async def getText(channel, post):
-    text, post = await telepost.getRawText(channel, post.post_id)
-    for entity in post.entities or []:
-        origin_text = ''.join(text[entity.offset:entity.offset + entity.length])
-        to_replace = entity.url if hasattr(entity, 'url') else origin_text
-        text[entity.offset] = to_replace
-        if entity.offset + entity.length == len(text) and origin_text == 'source':
-            text[entity.offset] = '\n\n' + to_replace
-        for index in range(entity.offset + 1, entity.offset + entity.length):
-            if text[index] != '\n':
-                text[index] = ''
-    text = ''.join(text)
-    text = '\n'.join([line.strip() for line in text.split('\n')]).strip()
-    return text
 
 async def runImp():
     removeOldFiles('tmp', day=0.1)
@@ -95,8 +81,10 @@ async def runImp():
                 continue
             tumblr_user = credential['channels'][channel]['tumblr_user']
             result = await post_tumblr(tumblr_user, channel, post, album, status_text)
-            existing.update(album.url, 
-                'tumblr.com/' + tumblr_user + '/' + result['id_str'])
+            print(album.url, result)
+            result_url = 'https://tumblr.com/%s/%d' % (tumblr_user, result['id'])
+            print(result_url)
+            existing.update(album.url, result_url)
             return # only send one item for each run
 
 async def run():
