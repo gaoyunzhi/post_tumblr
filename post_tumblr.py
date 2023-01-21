@@ -82,9 +82,9 @@ async def runImp():
             tumblr_user = credential['channels'][channel]['tumblr_user']
             result = await post_tumblr(tumblr_user, channel, post, album, status_text)
             if 'id' not in result:
-                print(album.url, result)
+                # print(album.url, result)
+                return # I don't know why it has so much failure, but seems not worth fix it
             result_url = 'https://tumblr.com/%s/%d' % (tumblr_user, result['id'])
-            # print(result_url)
             existing.update(album.url, result_url)
             return # only send one item for each run
 
