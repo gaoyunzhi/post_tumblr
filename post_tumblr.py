@@ -81,6 +81,8 @@ async def runImp():
                 continue
             tumblr_user = credential['channels'][channel]['tumblr_user']
             result = await post_tumblr(tumblr_user, channel, post, album, status_text)
+            if 'id' not in result:
+                print(result)
             result_url = 'https://tumblr.com/%s/%d' % (tumblr_user, result['id'])
             # print(result_url)
             existing.update(album.url, result_url)
